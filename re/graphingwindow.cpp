@@ -218,18 +218,24 @@ void GraphingWindow::updatedFrames(int numFrames)
             appendedToGraph = false;
             x.clear();
             y.clear();
+
+            GraphParams& params = graphParams[j];
+
             for (int i = modelFrames->count() - numFrames; i < modelFrames->count(); i++)
             {
                 thisFrame = modelFrames->at(i);
-                if ( graphParams[j].ID == thisFrame.frameId() && ( (graphParams[j].bus == -1) || (graphParams[j].bus == thisFrame.bus) ) )
+                if (params.ID == thisFrame.frameId() &&
+                    (params.bus == -1 || params.bus == thisFrame.bus) &&
+                    params.associatedSignal->isSignalInMessage(thisFrame))
                 {
-                    appendToGraph(graphParams[j], thisFrame, x, y);
+                    appendToGraph(params, thisFrame, x, y);
                     appendedToGraph = true;
                 }
             }
+
             if (appendedToGraph)
             {
-                graphParams[j].ref->addData(x, y);
+                params.ref->addData(x, y);
                 needReplot = true;
             }
         }

@@ -178,13 +178,22 @@ void SignalViewerWindow::loadMessages(int idx)
 
     for (int f = 0; f < numFiles; f++)
     {
-        qDebug() << dbcHandler->getFileByIdx(f)->messageHandler->getCount();
+        DBCFile* thisFile = dbcHandler->getFileByIdx(f);
+        qDebug() << thisFile->messageHandler->getCount();
 
-        for (int x = 0; x < dbcHandler->getFileByIdx(f)->messageHandler->getCount(); x++)
+        QList<QString> names;
+
+        for (int x = 0; x < thisFile->messageHandler->getCount(); x++)
         {
-            QString fullyQualifiedNodeName = dbcHandler->getFileByIdx(f)->getFilenameNoExt() + Utility::fullyQualifiedNameSeperator + dbcHandler->getFileByIdx(f)->messageHandler->findMsgByIdx(x)->sender->name;
+            QString fullyQualifiedNodeName = thisFile->getFilenameNoExt() + Utility::fullyQualifiedNameSeperator + thisFile->messageHandler->findMsgByIdx(x)->sender->name;
             if(fullyQualifiedNodeName == displayedNodeName)
-                ui->cbMessages->addItem(dbcHandler->getFileByIdx(f)->messageHandler->findMsgByIdx(x)->name);
+                names.append(thisFile->messageHandler->findMsgByIdx(x)->name);
+        }
+
+        if (names.count() > 0)
+        {
+            names.sort();
+            ui->cbMessages->addItems(names);
         }
     }
 }
@@ -195,14 +204,22 @@ void SignalViewerWindow::loadSignals(int idx)
 
     ui->cbSignals->clear();
 
+    //search through all DBC files in order to try to find a message with the given name
     QString fullyQualifiedNodeName = ui->cbNodes->itemText(ui->cbNodes->currentIndex());
-    QString msgName = ui->cbMessages->itemText(ui->cbMessages->currentIndex());
-
-    DBC_MESSAGE *msg = dbcHandler->findMessage(msgName, fullyQualifiedNodeName);
+    DBC_MESSAGE *msg = dbcHandler->findMessage(ui->cbMessages->currentText(), fullyQualifiedNodeName);
     if (msg == nullptr) return;
+
+    QList<QString> names;
+
     for (int x = 0; x < msg->sigHandler->getCount(); x++)
     {
-        ui->cbSignals->addItem(msg->sigHandler->findSignalByIdx(x)->name);
+        names.append(msg->sigHandler->findSignalByIdx(x)->name);
+    }
+
+    if (names.count() > 0)
+    {
+        names.sort();
+        ui->cbSignals->addItems(names);
     }
 }
 
