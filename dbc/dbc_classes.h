@@ -76,6 +76,7 @@ public:
 
     DBC_ATTRIBUTE_VALUE *findAttrValByName(QString name);
     DBC_ATTRIBUTE_VALUE *findAttrValByIdx(int idx);
+    const QString getFullyQualifiedNodeName() const;
 
     friend bool operator<(const DBC_NODE& l, const DBC_NODE& r)
     {

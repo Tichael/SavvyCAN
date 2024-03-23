@@ -87,7 +87,7 @@ void DBCSignalHandler::removeAllSignals()
     sigs.clear();
 }
 
-int DBCSignalHandler::getCount()
+int DBCSignalHandler::getCount() const
 {
     return sigs.count();
 }
@@ -260,7 +260,7 @@ void DBCMessageHandler::removeAllMessages()
     messages.clear();
 }
 
-int DBCMessageHandler::getCount()
+int DBCMessageHandler::getCount() const
 {
     return messages.count();
 }
@@ -274,7 +274,7 @@ void DBCMessageHandler::sort()
     }
 }
 
-bool DBCMessageHandler::filterLabeling()
+bool DBCMessageHandler::filterLabeling() const
 {
     return filterLabelingEnabled;
 }
@@ -284,7 +284,7 @@ void DBCMessageHandler::setFilterLabeling(bool filterLabeling)
     filterLabelingEnabled = filterLabeling;
 }
 
-MatchingCriteria_t DBCMessageHandler::getMatchingCriteria()
+MatchingCriteria_t DBCMessageHandler::getMatchingCriteria() const
 {
     return matchingCriteria;
 }
@@ -382,27 +382,27 @@ DBC_NODE* DBCFile::findNodeByNameAndComment(QString fullname)
     return nullptr;
 }
 
-QString DBCFile::getFullFilename()
+QString DBCFile::getFullFilename() const
 {
     return filePath + fileName;
 }
 
-QString DBCFile::getFilename()
+QString DBCFile::getFilename() const
 {
     return fileName;
 }
 
-QString DBCFile::getFilenameNoExt()
+QString DBCFile::getFilenameNoExt() const
 {
     return fileName.split(".dbc")[0];
 }
 
-QString DBCFile::getPath()
+QString DBCFile::getPath() const
 {
     return filePath;
 }
 
-int DBCFile::getAssocBus()
+int DBCFile::getAssocBus() const
 {
     return assocBuses;
 }

@@ -41,19 +41,14 @@ SignalViewerWindow::SignalViewerWindow(const QVector<CANFrame> *frames, QWidget 
     verticalHeader->setFont(QFont());
 
     dbcHandler = DBCHandler::getReference();
-    currentlySelectedMsg = nullptr;
 
-    connect(ui->cbNodes, SIGNAL(currentIndexChanged(int)), this, SLOT(loadMessages(int)));
-    connect(ui->cbMessages, SIGNAL(currentIndexChanged(int)), this, SLOT(loadSignals(int)));
-    connect(ui->btnAdd, SIGNAL(clicked(bool)), this, SLOT(addSignal()));
+    connect(ui->signalSelector, SIGNAL(onConfirm(DBC_SIGNAL*)), this, SLOT(addSignal(DBC_SIGNAL*)));
     connect(MainWindow::getReference(), SIGNAL(framesUpdated(int)), this, SLOT(updatedFrames(int)));
     connect(ui->btnRemove, SIGNAL(clicked(bool)), this, SLOT(removeSelectedSignal()));
     connect(ui->btnSave, SIGNAL(clicked(bool)), this, SLOT(saveSignalsFile()));
     connect(ui->btnLoad, SIGNAL(clicked(bool)), this, SLOT(loadSignalsFile()));
     connect(ui->btnAppend, SIGNAL(clicked(bool)), this, SLOT(appendSignalsFile()));
     connect(ui->btnClear, SIGNAL(clicked(bool)), this, SLOT(clearSignalsTable()));
-
-    loadNodes();
 }
 
 SignalViewerWindow::~SignalViewerWindow()
@@ -121,122 +116,6 @@ void SignalViewerWindow::removeSelectedSignal()
     if (selRow < 0) return; //no selected row
     signalList.removeAt(selRow);
     ui->tableViewer->removeRow(selRow);
-}
-
-void SignalViewerWindow::loadNodes()
-{
-    int numFiles;
-    ui->cbNodes->clear();
-    if (dbcHandler == nullptr) return;
-    if ((numFiles = dbcHandler->getFileCount()) == 0) return;
-    qDebug() << numFiles;
-    for (int f = 0; f < numFiles; f++)
-    {
-        DBCFile* thisFile = dbcHandler->getFileByIdx(f);
-        qDebug() << thisFile->messageHandler->getCount();
-
-        QList<QString> names;
-
-        for (int x = 0; x < thisFile->dbc_nodes.count(); x++)
-        {
-            bool messagesInNode = false;
-            for (int m = 0; m < thisFile->messageHandler->getCount(); m++)
-            {
-                if(thisFile->messageHandler->findMsgByIdx(m)->sender->name == thisFile->dbc_nodes[x].name)
-                {
-                    messagesInNode = true;
-                    break;
-                }
-            }
-            if(messagesInNode)
-            {
-                QString fullyQualifiedNodeName = thisFile->getFilenameNoExt() + Utility::fullyQualifiedNameSeperator + thisFile->dbc_nodes[x].name;
-                names.append(fullyQualifiedNodeName);
-            }
-        }
-
-        if(names.count() > 0)
-        {
-            names.sort();
-            ui->cbNodes->addItem("----" + thisFile->getFilename());
-            Utility::SetComboBoxItemEnabled(ui->cbNodes, ui->cbNodes->count() -1, false);
-            for(int i=0; i<names.count(); i++)
-                ui->cbNodes->addItem(names[i]);
-        }
-    }
-}
-
-void SignalViewerWindow::loadMessages(int idx)
-{
-    int numFiles = 0;
-    ui->cbMessages->clear();
-    if (dbcHandler == nullptr) return;
-    if ((numFiles = dbcHandler->getFileCount()) == 0) return;
-    qDebug() << numFiles;
-
-    QString displayedNodeName = ui->cbNodes->itemText(idx);
-
-    for (int f = 0; f < numFiles; f++)
-    {
-        DBCFile* thisFile = dbcHandler->getFileByIdx(f);
-        qDebug() << thisFile->messageHandler->getCount();
-
-        QList<QString> names;
-
-        for (int x = 0; x < thisFile->messageHandler->getCount(); x++)
-        {
-            QString fullyQualifiedNodeName = thisFile->getFilenameNoExt() + Utility::fullyQualifiedNameSeperator + thisFile->messageHandler->findMsgByIdx(x)->sender->name;
-            if(fullyQualifiedNodeName == displayedNodeName)
-                names.append(thisFile->messageHandler->findMsgByIdx(x)->name);
-        }
-
-        if (names.count() > 0)
-        {
-            names.sort();
-            ui->cbMessages->addItems(names);
-        }
-    }
-}
-
-void SignalViewerWindow::loadSignals(int idx)
-{
-    Q_UNUSED(idx);
-
-    ui->cbSignals->clear();
-
-    //search through all DBC files in order to try to find a message with the given name
-    QString fullyQualifiedNodeName = ui->cbNodes->itemText(ui->cbNodes->currentIndex());
-    DBC_MESSAGE *msg = dbcHandler->findMessage(ui->cbMessages->currentText(), fullyQualifiedNodeName);
-    if (msg == nullptr) return;
-
-    QList<QString> names;
-
-    for (int x = 0; x < msg->sigHandler->getCount(); x++)
-    {
-        names.append(msg->sigHandler->findSignalByIdx(x)->name);
-    }
-
-    if (names.count() > 0)
-    {
-        names.sort();
-        ui->cbSignals->addItems(names);
-    }
-}
-
-void SignalViewerWindow::addSignal()
-{
-    DBC_MESSAGE *msg = nullptr;
-
-    QString fullyQualifiedNodeName = ui->cbNodes->itemText(ui->cbNodes->currentIndex());
-    QString msgName = ui->cbMessages->itemText(ui->cbMessages->currentIndex());
-
-    msg = dbcHandler->findMessage(msgName, fullyQualifiedNodeName);
-
-    if (!msg) return;
-    DBC_SIGNAL *sig = msg->sigHandler->findSignalByName(ui->cbSignals->currentText());
-    if (!sig) return;
-
-    addSignal(sig);
 }
 
 void SignalViewerWindow::addSignal(DBC_SIGNAL *sig)

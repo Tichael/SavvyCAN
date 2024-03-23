@@ -28,7 +28,7 @@ public:
     bool removeSignal(int idx);
     bool removeSignal(QString name);
     void removeAllSignals();
-    int getCount();
+    int getCount() const;
     void sort();
 
 private:
@@ -50,11 +50,11 @@ public:
     bool removeMessage(uint32_t ID);
     bool removeMessage(QString name);
     void removeAllMessages();
-    int getCount();
-    MatchingCriteria_t getMatchingCriteria();
+    int getCount() const;
+    MatchingCriteria_t getMatchingCriteria() const;
     void setMatchingCriteria(MatchingCriteria_t mc);
     void setFilterLabeling( bool labelFiltering );
-    bool filterLabeling();
+    bool filterLabeling() const;
     void sort();
 
 private:
@@ -80,11 +80,11 @@ public:
     void findAttributesByType(DBC_ATTRIBUTE_TYPE typ, QList<DBC_ATTRIBUTE> *list);
     bool saveFile(QString);
     bool loadFile(QString);
-    QString getFullFilename();
-    QString getFilename();
-    QString getFilenameNoExt();
-    QString getPath();
-    int getAssocBus();
+    QString getFullFilename() const;
+    QString getFilename() const;
+    QString getFilenameNoExt() const;
+    QString getPath() const;
+    int getAssocBus() const;
     void setAssocBus(int bus);
     void setDirtyFlag();
     bool getDirtyFlag();

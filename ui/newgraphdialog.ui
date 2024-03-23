@@ -278,62 +278,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QLabel" name="label_19">
-         <property name="text">
-          <string>Node:</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignCenter</set>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QComboBox" name="cbNodes"/>
-       </item>
-       <item>
-        <widget class="QLabel" name="label_9">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="text">
-          <string>Message:</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignCenter</set>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QComboBox" name="cbMessages"/>
-       </item>
-       <item>
-        <widget class="QLabel" name="label_10">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="text">
-          <string>Signal:</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignCenter</set>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QComboBox" name="cbSignals"/>
-       </item>
-       <item>
-        <widget class="QPushButton" name="btnCopySignal">
-         <property name="text">
-          <string>Copy Signal Parameters</string>
-         </property>
-        </widget>
+        <widget class="SignalSelector" name="signalSelector" native="true"/>
        </item>
        <item>
         <widget class="QLabel" name="lblMsgStatus">
@@ -374,23 +319,13 @@
    <header>candatagrid.h</header>
    <container>1</container>
   </customwidget>
+  <customwidget>
+   <class>SignalSelector</class>
+   <extends>QWidget</extends>
+   <header>signalselector.h</header>
+   <container>1</container>
+  </customwidget>
  </customwidgets>
- <tabstops>
-  <tabstop>txtName</tabstop>
-  <tabstop>txtID</tabstop>
-  <tabstop>txtDataLen</tabstop>
-  <tabstop>cbIntel</tabstop>
-  <tabstop>cbSigned</tabstop>
-  <tabstop>txtMask</tabstop>
-  <tabstop>txtBias</tabstop>
-  <tabstop>txtScale</tabstop>
-  <tabstop>txtStride</tabstop>
-  <tabstop>colorSwatch</tabstop>
-  <tabstop>btnAddGraph</tabstop>
-  <tabstop>cbMessages</tabstop>
-  <tabstop>cbSignals</tabstop>
-  <tabstop>btnCopySignal</tabstop>
- </tabstops>
  <resources/>
  <connections/>
 </ui>

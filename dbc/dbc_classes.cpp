@@ -379,3 +379,8 @@ DBC_ATTRIBUTE_VALUE *DBC_NODE::findAttrValByIdx(int idx)
     if (idx >= attributes.count()) return nullptr;
     return &attributes[idx];
 }
+
+const QString DBC_NODE::getFullyQualifiedNodeName() const
+{
+    return sourceFileName + Utility::fullyQualifiedNameSeperator + name;
+}

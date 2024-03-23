@@ -43,19 +43,17 @@ NewGraphDialog::NewGraphDialog(DBCHandler *handler, QWidget *parent) :
     ui->coPointStyle->addItem("Plus Inside Circle");
     ui->coPointStyle->addItem("Peace Sign");
 
-    connect(ui->cbNodes, SIGNAL(currentIndexChanged(int)), this, SLOT(loadMessages(int)));
-    connect(ui->cbMessages, SIGNAL(currentIndexChanged(int)), this, SLOT(loadSignals(int)));
+    ui->signalSelector->setConfirmButtonText("Copy Signal Parameters");
+
     connect(ui->gridData, SIGNAL(gridClicked(int)), this, SLOT(bitfieldClicked(int)));
     connect(ui->txtDataLen, SIGNAL(textChanged(QString)), this, SLOT(handleDataLenUpdate()));
     connect(ui->cbIntel, SIGNAL(toggled(bool)), this, SLOT(drawBitfield()));
-    connect(ui->btnCopySignal, SIGNAL(clicked(bool)), this, SLOT(copySignalToParamsUI()));
-    connect(ui->cbSignals, SIGNAL(currentIndexChanged(int)), this, SLOT(drawBitfield()));
+    connect(ui->signalSelector, SIGNAL(onConfirm(DBC_SIGNAL*)), this, SLOT(copySignalToParamsUI(DBC_SIGNAL*)));
+    connect(ui->signalSelector, SIGNAL(onSelectedSignalChange(const DBC_SIGNAL*)), this, SLOT(drawBitfield()));
 
     startBit = 0;
     dataLen = 1;
     assocSignal = nullptr;
-
-    loadNodes();
 
     installEventFilter(this);
 }
@@ -69,8 +67,6 @@ NewGraphDialog::~NewGraphDialog()
 void NewGraphDialog::showEvent(QShowEvent* event)
 {
     QDialog::showEvent(event);
-    if(shownFromPlotEdit == false)
-        loadNodes();
     drawBitfield();
     qDebug() << "S" << ui->gridData->geometry();
 }
@@ -122,28 +118,16 @@ void NewGraphDialog::checkSignalAgreement()
     GraphParams testingParams;
     bool bAgree = true;
     bool sigSigned = false;
-    DBC_SIGNAL *sig = nullptr;
-    DBC_MESSAGE *msg = nullptr;
 
     if (dbcHandler == nullptr) return;
-    if (dbcHandler->getFileCount() == 0) return;    
+    if (dbcHandler->getFileCount() == 0) return;
 
-    QString fullyQualifiedNodeName = ui->cbNodes->itemText(ui->cbNodes->currentIndex());
-    QString msgName = ui->cbMessages->currentText();
-    msg = dbcHandler->findMessage(msgName, fullyQualifiedNodeName);
-    if (msg)
-    {
-        sig = msg->sigHandler->findSignalByName(ui->cbSignals->currentText());
-    }
-    else
-    {
-        ui->lblMsgStatus->setText("Msg ID doesn't exist in DBC");
-        return;
-    }
+    const DBC_SIGNAL* selectedSignal = ui->signalSelector->getSelectedSignal();
 
-    if (sig)
+    if (selectedSignal != nullptr)
     {
-        if (sig->valType == SIGNED_INT) sigSigned = true;
+        if (selectedSignal->valType == SIGNED_INT)
+            sigSigned = true;
 
         testingParams.ID = Utility::ParseStringToNum(ui->txtID->text());
         testingParams.bias = ui->txtBias->text().toFloat();
@@ -153,19 +137,19 @@ void NewGraphDialog::checkSignalAgreement()
         testingParams.startBit = startBit;
         testingParams.numBits = dataLen;
 
-        if (testingParams.ID != msg->ID)
+        if (testingParams.ID != selectedSignal->parentMessage->ID)
             bAgree = false;
-        if (fabs(testingParams.bias - sig->bias) > 0.01)
+        if (fabs(testingParams.bias - selectedSignal->bias) > 0.01)
             bAgree = false;
         if (testingParams.isSigned != sigSigned)
             bAgree = false;
-        if (testingParams.intelFormat != sig->intelByteOrder)
+        if (testingParams.intelFormat != selectedSignal->intelByteOrder)
             bAgree = false;
-        if (fabs(testingParams.scale - sig->factor) > 0.01)
+        if (fabs(testingParams.scale - selectedSignal->factor) > 0.01)
             bAgree = false;
-        if (testingParams.startBit != sig->startBit)
+        if (testingParams.startBit != selectedSignal->startBit)
             bAgree = false;
-        if (testingParams.numBits != sig->signalSize)
+        if (testingParams.numBits != selectedSignal->signalSize)
             bAgree = false;
     }
     else
@@ -223,64 +207,8 @@ void NewGraphDialog::setParams(GraphParams &params)
     ui->spinLineWidth->setValue(params.lineWidth);
     ui->coPointStyle->setCurrentIndex(params.pointType);
 
-    assocSignal = params.associatedSignal;
+    ui->signalSelector->setSelectedSignal(params.associatedSignal);
 
-    loadNodes();
-
-    if (assocSignal)
-    {
-        auto msg = assocSignal->parentMessage;
-        auto node = msg->sender;
-
-        bool nodeFound = false;
-        for(int i=0; i<ui->cbNodes->count(); i++)
-        {
-            if(ui->cbNodes->itemText(i) == node->sourceFileName + Utility::fullyQualifiedNameSeperator + node->name)
-            {
-                ui->cbNodes->setCurrentIndex(i);
-                nodeFound = true;
-                break;
-            }
-        }
-
-        qDebug() << "Matching plot params to Node: " << nodeFound;
-
-        if(nodeFound)
-        {
-            bool msgFound = false;
-            for(int i=0; i<ui->cbMessages->count(); i++)
-            {
-                if(ui->cbMessages->itemText(i) == msg->name)
-                {
-                    ui->cbMessages->setCurrentIndex(i);
-                    msgFound = true;
-                    break;
-                }
-            }
-
-            qDebug() << "Matching plot params to Msg: " << msgFound;
-
-            if(msgFound)
-            {
-                bool sigFound = false;
-                for(int i=0; i<ui->cbSignals->count(); i++)
-                {
-                    if(ui->cbSignals->itemText(i) == assocSignal->name)
-                    {
-                        ui->cbSignals->setCurrentIndex(i);
-                        sigFound = true;
-                        break;
-                    }
-                }
-
-                qDebug() << "Matching plot params to Signal: " << sigFound;
-            }
-        }
-    }
-    //ui->cbNodes->model()->
-
-
-    //loadSignals(0);
     drawBitfield();
     checkSignalAgreement();
 }
@@ -313,117 +241,6 @@ void NewGraphDialog::getParams(GraphParams &params)
     if (params.mask == 0) params.mask = 0xFFFFFFFF;
     if (fabs(params.scale) < 0.00000001) params.scale = 1.0f;
     if (params.stride < 1) params.stride = 1;
-}
-
-void NewGraphDialog::loadNodes()
-{
-    int numFiles;
-    ui->cbNodes->clear();
-    if (dbcHandler == nullptr) return;
-    if ((numFiles = dbcHandler->getFileCount()) == 0) return;
-    qDebug() << numFiles;
-    for (int f = 0; f < numFiles; f++)
-    {
-        DBCFile* thisFile = dbcHandler->getFileByIdx(f);
-        qDebug() << thisFile->messageHandler->getCount();
-
-        QList<QString> names;
-
-        for (int x = 0; x < thisFile->dbc_nodes.count(); x++)
-        {
-            bool messagesInNode = false;
-            for (int m = 0; m < thisFile->messageHandler->getCount(); m++)
-            {
-                if(thisFile->messageHandler->findMsgByIdx(m)->sender->name == thisFile->dbc_nodes[x].name)
-                {
-                    messagesInNode = true;
-                    break;
-                }
-            }
-            if(messagesInNode)
-            {
-                QString fullyQualifiedNodeName = thisFile->getFilenameNoExt() + Utility::fullyQualifiedNameSeperator + thisFile->dbc_nodes[x].name;
-                names.append(fullyQualifiedNodeName);
-            }
-        }
-
-        if(names.count() > 0)
-        {
-            names.sort();
-            ui->cbNodes->addItem("----" + thisFile->getFilename());
-            Utility::SetComboBoxItemEnabled(ui->cbNodes, ui->cbNodes->count() -1, false);
-            for(int i=0; i<names.count(); i++)
-                ui->cbNodes->addItem(names[i]);
-        }
-    }
-}
-
-void NewGraphDialog::loadMessages(int idx)
-{
-    int numFiles = 0;
-    ui->cbMessages->clear();
-    if (dbcHandler == nullptr) return;
-    if ((numFiles = dbcHandler->getFileCount()) == 0) return;
-    qDebug() << numFiles;
-
-    QString displayedNodeName = ui->cbNodes->itemText(idx);
-
-    for (int f = 0; f < numFiles; f++)
-    {
-        DBCFile* thisFile = dbcHandler->getFileByIdx(f);
-        qDebug() << thisFile->messageHandler->getCount();
-
-        QList<QString> names;
-
-        for (int x = 0; x < thisFile->messageHandler->getCount(); x++)
-        {
-            QString fullyQualifiedNodeName = thisFile->getFilenameNoExt() + Utility::fullyQualifiedNameSeperator + thisFile->messageHandler->findMsgByIdx(x)->sender->name;
-            if(fullyQualifiedNodeName == displayedNodeName)
-                names.append(thisFile->messageHandler->findMsgByIdx(x)->name);
-        }
-
-        if (names.count() > 0)
-        {
-            names.sort();
-            ui->cbMessages->addItems(names);
-        }
-    }
-}
-
-void NewGraphDialog::loadSignals(int idx)
-{
-    Q_UNUSED(idx);
-
-    ui->cbSignals->clear();
-
-    //search through all DBC files in order to try to find a message with the given name
-    QString fullyQualifiedNodeName = ui->cbNodes->itemText(ui->cbNodes->currentIndex());
-    DBC_MESSAGE *msg = dbcHandler->findMessage(ui->cbMessages->currentText(), fullyQualifiedNodeName);
-    if (msg == nullptr) return;
-
-    QList<QString> names;
-
-    for (int x = 0; x < msg->sigHandler->getCount(); x++)
-    {
-        DBC_SIGNAL *sig = msg->sigHandler->findSignalByIdx(x);
-        if (sig)
-        {
-            names.append(sig->name);
-        }
-    }
-
-    if (names.count() > 0)
-    {
-        names.sort();
-        ui->cbSignals->addItems(names);
-
-        if (assocSignal && names.contains(assocSignal->name))
-        {
-            ui->cbSignals->setCurrentIndex(names.indexOf(assocSignal->name));
-        }
-    }
-
-    checkSignalAgreement();
 }
 
 void NewGraphDialog::bitfieldClicked(int bit)
@@ -487,32 +304,23 @@ void NewGraphDialog::handleDataLenUpdate()
     checkSignalAgreement();
 }
 
-void NewGraphDialog::copySignalToParamsUI()
+void NewGraphDialog::copySignalToParamsUI(DBC_SIGNAL* signal)
 {
-    assocSignal = nullptr;
-    DBC_MESSAGE *msg = nullptr;
+    if (!signal)
+        return;
 
-    QString fullyQualifiedNodeName = ui->cbNodes->itemText(ui->cbNodes->currentIndex());
-    QString msgName = ui->cbMessages->itemText(ui->cbMessages->currentIndex());
-
-    msg = dbcHandler->findMessage(msgName, fullyQualifiedNodeName);
-
-    if (!msg) return;
-    DBC_SIGNAL *sig = msg->sigHandler->findSignalByName(ui->cbSignals->currentText());
-    if (!sig) return;
-
-    startBit = sig->startBit;
-    ui->txtBias->setText(QString::number(sig->bias));
-    ui->txtDataLen->setText(QString::number(sig->signalSize));
-    ui->txtID->setText(Utility::formatCANID(msg->ID));
+    startBit = signal->startBit;
+    ui->txtBias->setText(QString::number(signal->bias));
+    ui->txtDataLen->setText(QString::number(signal->signalSize));
+    ui->txtID->setText(Utility::formatCANID(signal->parentMessage->ID));
     ui->txtMask->setText("0xFFFFFFFF");
-    ui->txtName->setText(sig->name);
-    ui->txtScale->setText(QString::number(sig->factor));
+    ui->txtName->setText(signal->name);
+    ui->txtScale->setText(QString::number(signal->factor));
     ui->txtStride->setText("1");
-    ui->cbIntel->setChecked(sig->intelByteOrder);
-    if (sig->valType == SIGNED_INT) ui->cbSigned->setChecked(true);
+    ui->cbIntel->setChecked(signal->intelByteOrder);
+    if (signal->valType == SIGNED_INT) ui->cbSigned->setChecked(true);
         else ui->cbSigned->setChecked(false);
     drawBitfield();
-    assocSignal = sig;
+    assocSignal = signal;
     checkSignalAgreement();
 }

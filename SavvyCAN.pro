@@ -43,6 +43,7 @@ SOURCES += main.cpp\
     re/dbccomparatorwindow.cpp \
     mainwindow.cpp \
     canframemodel.cpp \
+    signalselector.cpp \
     simplecrypt.cpp \
     triggerdialog.cpp \
     utility.cpp \
@@ -136,6 +137,7 @@ HEADERS  += mainwindow.h \
     mqtt/qmqtt_websocketiodevice_p.h \
     qcpaxistickerhex.h \
     re/dbccomparatorwindow.h \
+    signalselector.h \
     simplecrypt.h \
     triggerdialog.h \
     utility.h \
@@ -226,6 +228,7 @@ FORMS    += ui/candatagrid.ui \
     ui/newgraphdialog.ui \
     ui/rangestatewindow.ui \
     ui/scriptingwindow.ui \
+    ui/signalselector.ui \
     ui/snifferwindow.ui \
     ui/udsscanwindow.ui \
     ui/bisectwindow.ui \
