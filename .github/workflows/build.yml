@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - "master"
+      - "dev"
+      - "feature/**"
+      - "bugfix/**"
       
 jobs:
   buildlinux:
@@ -128,42 +131,27 @@ jobs:
 
       - uses: actions/download-artifact@v3
 
-      - name: Display structure of downloaded files
-        run: zip -r SavvyCAN-Windows_x64_CIBuild.zip SavvyCAN-Windows_x64
+      - name: Get commit hash
+        id: commit_hash
+        run: echo "::set-output name=hash::$(git rev-parse --short HEAD)"
+
+      - name: Get branch name
+        id: branch_name
+        run: echo "::set-output name=name::$(echo ${GITHUB_REF#refs/heads/})"
+
+      - name: Prepare files
+        run: |
+          zip -r "SavvyCAN-${{ steps.commit_hash.outputs.hash }}-Windows_x64.zip" SavvyCAN-Windows_x64
+          mv SavvyCAN-Linux_x64.AppImage/SavvyCAN-*x86_64.AppImage "SavvyCAN-${{ steps.commit_hash.outputs.hash }}-Linux_amd64.AppImage"
+          mv SavvyCAN-macOS_x64.dmg/SavvyCAN.dmg "SavvyCAN-${{ steps.commit_hash.outputs.hash }}-macOS_x64.dmg"
+
       - uses: "marvinpinto/action-automatic-releases@latest"
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: "continuous"
+          automatic_release_tag: "${{ steps.branch_name.outputs.name }}-CI"
           prerelease: true
-          title: "Development Build"
+          title: "${{ steps.branch_name.outputs.name }} - Development Build"
           files: |
-            SavvyCAN-Linux_x64.AppImage/SavvyCAN-*x86_64.AppImage
-            SavvyCAN-Windows_x64_CIBuild.zip
-            SavvyCAN-macOS_x64.dmg/SavvyCAN.dmg
-          
-  notify:
-    name: Notify Discord
-    runs-on: ubuntu-latest
-    needs: [buildwindows, buildmacos, buildlinux]
-    steps:
-      - id: msg_var
-        name: remove newlines
-        run: |
-          export release_msg=$(cat << EOF
-          ${{ github.event.head_commit.message }} 
-          EOF
-          )
-          release_msg="${release_msg//$'\n'/'-'}"
-          release_msg="${release_msg//$'\r'/'-'}"
-          release_msg="${release_msg//$'('/'-'}"
-          release_msg="${release_msg//$')'/'-'}"
-          echo $release_msg
-          echo "::set-output name=msg::$release_msg"
-                                                                  
-      - name: Notify Discord
-        run: |
-          curl -i -H "Accept: application/json" \
-          -H "Content-Type:application/json" \
-          -X POST \
-          --data "{\"content\": null,\"embeds\": [{\"title\": \"${{ github.repository }} Build Complete\",      \"description\": \"${{ steps.msg_var.outputs.msg }} \\nCommit: ${{ github.sha }}\\n[Build Artifacts](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts)\",      \"color\": 5131997,      \"author\": {        \"name\": \"Github Builds\"      }    }  ]}" \
-          https://discord.com/api/webhooks/${{ secrets.WEBHOOK_ID }}/${{ secrets.WEBHOOK_TOKEN }}
+            SavvyCAN-${{ steps.commit_hash.outputs.hash }}-Linux_amd64.AppImage
+            SavvyCAN-${{ steps.commit_hash.outputs.hash }}-Windows_x64.zip
+            SavvyCAN-${{ steps.commit_hash.outputs.hash }}-macOS_x64.dmg
